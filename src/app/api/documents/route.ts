@@ -50,6 +50,15 @@ export async function GET(request: NextRequest) {
     };
   }
 
+  const searchParam = searchParams.get("search");
+  if (searchParam && searchParam.trim().length > 0) {
+    const term = searchParam.trim();
+    where.OR = [
+      { vendorName: { contains: term, mode: "insensitive" } },
+      { documentNumber: { contains: term, mode: "insensitive" } },
+    ];
+  }
+
   try {
     const [documents, total] = await Promise.all([
       prisma.document.findMany({
