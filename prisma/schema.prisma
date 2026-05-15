@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum DocumentType {
+  faktura_zakup
+  faktura_sprzedaz
+  paragon
+  inny
+}
+
+enum CostOwner {
+  onyx
+  ogonowscy
+  pieloch
+  welman
+}
+
+enum DocumentStatus {
+  processing
+  review
+  confirmed
+  rejected
+}
+
+enum UserRole {
+  admin
+  viewer
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  name         String
+  role         UserRole  @default(viewer)
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  documents    Document[]
+  aiConfigs    AiConfig[]
+
+  @@map("users")
+}
+
+model Document {
+  id              String         @id @default(uuid())
+  type            DocumentType
+  costOwner       CostOwner      @map("cost_owner")
+  isPrivate       Boolean        @default(false) @map("is_private")
+  status          DocumentStatus @default(processing)
+  vendorName      String?        @map("vendor_name")
+  vendorNip       String?        @map("vendor_nip")
+  documentNumber  String?        @map("document_number")
+  documentDate    DateTime?      @map("document_date")
+  saleDate        DateTime?      @map("sale_date")
+  netAmount       Decimal?       @map("net_amount") @db.Decimal(12, 2)
+  vatAmount       Decimal?       @map("vat_amount") @db.Decimal(12, 2)
+  grossAmount     Decimal?       @map("gross_amount") @db.Decimal(12, 2)
+  ocrRawText      String?        @map("ocr_raw_text")
+  aiRawResponse   Json?          @map("ai_raw_response")
+  imagePath       String         @map("image_path")
+  notes           String?
+  createdBy       String         @map("created_by")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  deletedAt       DateTime?      @map("deleted_at")
+
+  user            User           @relation(fields: [createdBy], references: [id])
+  items           DocumentItem[]
+
+  @@map("documents")
+}
+
+model DocumentItem {
+  id          String   @id @default(uuid())
+  documentId  String   @map("document_id")
+  name        String
+  quantity    Decimal? @db.Decimal(10, 3)
+  unit        String?
+  unitPrice   Decimal? @map("unit_price") @db.Decimal(12, 2)
+  netAmount   Decimal? @map("net_amount") @db.Decimal(12, 2)
+  vatRate     Decimal? @map("vat_rate") @db.Decimal(4, 2)
+  vatAmount   Decimal? @map("vat_amount") @db.Decimal(12, 2)
+  grossAmount Decimal? @map("gross_amount") @db.Decimal(12, 2)
+  category    String?
+
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("document_items")
+}
+
+model AiConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedBy String?  @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User?    @relation(fields: [updatedBy], references: [id])
+
+  @@map("ai_config")
+}
