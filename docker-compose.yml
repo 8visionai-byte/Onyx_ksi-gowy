@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  onyx-app:
+    build: .
+    container_name: onyx-ksiegowy
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://onyx:${DB_PASSWORD}@postgresql:5432/onyx_ksiegowy
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - GOOGLE_CLOUD_VISION_CREDENTIALS=${GOOGLE_CLOUD_VISION_CREDENTIALS}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - UPLOAD_DIR=/app/public/uploads
+    volumes:
+      - uploads:/app/public/uploads
+    depends_on:
+      - postgresql
+    networks:
+      - postgresql-uyof_default
+    restart: unless-stopped
+
+  postgresql:
+    image: postgres:16-alpine
+    container_name: onyx-db
+    environment:
+      - POSTGRES_USER=onyx
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=onyx_ksiegowy
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - postgresql-uyof_default
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  uploads:
+
+networks:
+  postgresql-uyof_default:
+    external: true
