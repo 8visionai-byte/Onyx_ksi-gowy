@@ -16,6 +16,16 @@ services:
     depends_on:
       onyx-db:
         condition: service_healthy
+    networks:
+      - default
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.onyx.entrypoints=websecure"
+      - "traefik.http.routers.onyx.rule=Host(`onyx.papishop.pl`)"
+      - "traefik.http.routers.onyx.tls.certresolver=letsencrypt"
+      - "traefik.http.services.onyx.loadbalancer.server.port=3000"
+      - "traefik.docker.network=postgresql-uyof_default"
     restart: unless-stopped
 
   onyx-db:
@@ -32,8 +42,16 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - default
     restart: unless-stopped
 
 volumes:
   onyx_pgdata:
   uploads:
+
+networks:
+  default:
+  traefik:
+    external: true
+    name: postgresql-uyof_default
