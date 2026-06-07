@@ -23,4 +23,4 @@ ENV PORT=3000
 EXPOSE 3000
 
 # Start: utworz/aktualizuj tabele (db push), zasiej dane (seed, nie blokuj gdy juz sa), uruchom
-CMD ["sh", "-c", "npx prisma db push --skip-generate && (npx prisma db seed || true) && npm start"]
+CMD ["sh", "-c", "npx prisma db push && (npx prisma db seed || true) && npm start"]
