@@ -4,10 +4,17 @@ let client: ImageAnnotatorClient | null = null;
 
 function getClient(): ImageAnnotatorClient {
   if (!client) {
-    const credentials = JSON.parse(
-      process.env.GOOGLE_CLOUD_VISION_CREDENTIALS || "{}"
-    );
-    client = new ImageAnnotatorClient({ credentials });
+    const keyFilename = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    if (keyFilename) {
+      // Uwierzytelnianie przez plik klucza (zalecane na produkcji)
+      client = new ImageAnnotatorClient({ keyFilename });
+    } else {
+      // Fallback: JSON w zmiennej srodowiskowej
+      const credentials = JSON.parse(
+        process.env.GOOGLE_CLOUD_VISION_CREDENTIALS || "{}"
+      );
+      client = new ImageAnnotatorClient({ credentials });
+    }
   }
   return client;
 }
