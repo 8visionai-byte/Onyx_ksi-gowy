@@ -37,7 +37,9 @@ export async function POST(request: NextRequest) {
 
     const uploadDir = process.env.UPLOAD_DIR || "public/uploads";
     const filename = path.basename(document.imagePath);
-    const fullPath = path.join(process.cwd(), uploadDir, filename);
+    // uploadDir moze byc absolutny (/app/public/uploads w kontenerze) lub wzgledny
+    // (public/uploads lokalnie). path.join obsluguje oba bez doklejania cwd.
+    const fullPath = path.join(uploadDir, filename);
 
     let ocrText: string;
     try {
