@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { getServerSession } from "next-auth";
@@ -14,6 +14,17 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Onyx Księgowy",
   description: "System księgowy dla firmy Onyx",
+  applicationName: "Onyx Księgowy",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Onyx Księgowy",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0f172a",
 };
 
 export default async function RootLayout({
