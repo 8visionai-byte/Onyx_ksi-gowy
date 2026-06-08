@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { documentDateCondition } from "@/lib/dateFilter";
 import { CostOwner } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
@@ -11,18 +12,15 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const month =
-    searchParams.get("month") || new Date().toISOString().slice(0, 7);
   const ownersParam = searchParams.get("owners");
+  const dateCond = documentDateCondition(
+    searchParams.get("from"),
+    searchParams.get("to")
+  );
 
-  const [year, m] = month.split("-").map(Number);
-  const startDate = new Date(year, m - 1, 1);
-  const endDate = new Date(year, m, 1);
-
-  const documentWhere: Record<string, unknown> = {
+  const baseDocWhere: Record<string, unknown> = {
     status: "confirmed",
     deletedAt: null,
-    documentDate: { gte: startDate, lt: endDate },
   };
 
   if (ownersParam) {
@@ -32,14 +30,14 @@ export async function GET(req: NextRequest) {
         Object.values(CostOwner).includes(o as CostOwner)
       ) as CostOwner[];
     if (owners.length > 0) {
-      documentWhere.costOwner = { in: owners };
+      baseDocWhere.costOwner = { in: owners };
     }
   }
 
   try {
     const items = await prisma.documentItem.findMany({
       where: {
-        document: documentWhere,
+        document: dateCond ? { AND: [baseDocWhere, dateCond] } : baseDocWhere,
       },
       select: {
         name: true,

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { CostOwner } from "@prisma/client";
 import OwnerFilter from "@/components/OwnerFilter";
 import StatCard from "@/components/StatCard";
-import MonthSelector from "@/components/MonthSelector";
+import DateRangeSelector, { currentMonthRange } from "@/components/DateRangeSelector";
 import DocumentsTable from "@/components/DocumentsTable";
 
 export default function DashboardPage() {
@@ -14,9 +14,7 @@ export default function DashboardPage() {
     "pieloch",
     "welman",
   ]);
-  const [month, setMonth] = useState(() =>
-    new Date().toISOString().slice(0, 7)
-  );
+  const [range, setRange] = useState(() => currentMonthRange());
   const [summary, setSummary] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,17 +25,17 @@ export default function DashboardPage() {
 
     Promise.all([
       fetch(
-        `/api/dashboard/summary?owners=${ownerParam}&month=${month}`
+        `/api/dashboard/summary?owners=${ownerParam}&from=${range.from}&to=${range.to}`
       ).then((r) => r.json()),
       fetch(
-        `/api/documents?owners=${ownerParam}&month=${month}&limit=10`
+        `/api/documents?owners=${ownerParam}&from=${range.from}&to=${range.to}&limit=10`
       ).then((r) => r.json()),
     ]).then(([sum, docs]) => {
       setSummary(sum);
       setDocuments(docs.documents || []);
       setLoading(false);
     });
-  }, [owners, month]);
+  }, [owners, range]);
 
   const fmt = (n: number) =>
     new Intl.NumberFormat("pl-PL", { minimumFractionDigits: 2 }).format(n);
@@ -46,7 +44,7 @@ export default function DashboardPage() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <MonthSelector value={month} onChange={setMonth} />
+        <DateRangeSelector from={range.from} to={range.to} onChange={(from, to) => setRange({ from, to })} />
       </div>
 
       <div className="mb-6">

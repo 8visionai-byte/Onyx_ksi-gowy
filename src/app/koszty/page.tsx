@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { CostOwner } from "@prisma/client";
 import OwnerFilter from "@/components/OwnerFilter";
-import MonthSelector from "@/components/MonthSelector";
+import DateRangeSelector, { currentMonthRange } from "@/components/DateRangeSelector";
 import { OWNER_LABELS, OWNER_COLORS } from "@/lib/types";
 
 interface OwnerBreakdown {
@@ -27,22 +27,19 @@ function formatPLN(value: number | null): string {
 const ALL_OWNERS: CostOwner[] = ["onyx", "ogonowscy", "pieloch", "welman"];
 
 export default function KosztyPage() {
-  const now = new Date();
-  const [month, setMonth] = useState(
-    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
-  );
+  const [range, setRange] = useState(() => currentMonthRange());
   const [owners, setOwners] = useState<CostOwner[]>([...ALL_OWNERS]);
   const [data, setData] = useState<OwnerBreakdown[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/dashboard/owners-breakdown?month=${month}`)
+    fetch(`/api/dashboard/owners-breakdown?from=${range.from}&to=${range.to}`)
       .then((r) => r.json())
       .then((d) => setData(d))
       .catch(() => setData([]))
       .finally(() => setLoading(false));
-  }, [month]);
+  }, [range]);
 
   const filtered = data.filter((row) => owners.includes(row.costOwner));
 
@@ -60,7 +57,7 @@ export default function KosztyPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-onyx-text">Koszty</h1>
-        <MonthSelector value={month} onChange={setMonth} />
+        <DateRangeSelector from={range.from} to={range.to} onChange={(from, to) => setRange({ from, to })} />
       </div>
 
       <OwnerFilter selected={owners} onChange={setOwners} />

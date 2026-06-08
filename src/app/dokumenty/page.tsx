@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { CostOwner, DocumentType, DocumentStatus } from "@prisma/client";
 import OwnerFilter from "@/components/OwnerFilter";
-import MonthSelector from "@/components/MonthSelector";
+import DateRangeSelector, { currentMonthRange } from "@/components/DateRangeSelector";
 import DocumentsTable from "@/components/DocumentsTable";
 import { DOCTYPE_LABELS } from "@/lib/types";
 
@@ -27,10 +27,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function DokumentyPage() {
-  const now = new Date();
-  const [month, setMonth] = useState(
-    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
-  );
+  const [range, setRange] = useState(() => currentMonthRange());
   const [owners, setOwners] = useState<CostOwner[]>([...ALL_OWNERS]);
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -51,7 +48,8 @@ export default function DokumentyPage() {
   const fetchData = useCallback(() => {
     setLoading(true);
     const params = new URLSearchParams({
-      month,
+      from: range.from,
+      to: range.to,
       page: String(page),
       limit: String(limit),
     });
@@ -73,7 +71,7 @@ export default function DokumentyPage() {
         setTotal(0);
       })
       .finally(() => setLoading(false));
-  }, [month, owners, typeFilter, statusFilter, searchDebounced, page]);
+  }, [range, owners, typeFilter, statusFilter, searchDebounced, page]);
 
   useEffect(() => {
     fetchData();
@@ -82,7 +80,12 @@ export default function DokumentyPage() {
   // Reset page on filter change
   useEffect(() => {
     setPage(1);
-  }, [month, owners, typeFilter, statusFilter, searchDebounced]);
+  }, [range, owners, typeFilter, statusFilter, searchDebounced]);
+
+  async function handleDelete(id: string) {
+    await fetch(`/api/documents/${id}`, { method: "DELETE" });
+    fetchData();
+  }
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
@@ -90,7 +93,7 @@ export default function DokumentyPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-onyx-text">Dokumenty</h1>
-        <MonthSelector value={month} onChange={setMonth} />
+        <DateRangeSelector from={range.from} to={range.to} onChange={(from, to) => setRange({ from, to })} />
       </div>
 
       <div className="flex flex-col gap-4">
@@ -145,7 +148,7 @@ export default function DokumentyPage() {
           Ladowanie...
         </div>
       ) : (
-        <DocumentsTable documents={documents} />
+        <DocumentsTable documents={documents} onDelete={handleDelete} />
       )}
 
       {/* Pagination */}

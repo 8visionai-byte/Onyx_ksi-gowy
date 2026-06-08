@@ -16,9 +16,11 @@ interface DocumentRow {
 
 interface DocumentsTableProps {
   documents: DocumentRow[];
+  onDelete?: (id: string) => void;
 }
 
-export default function DocumentsTable({ documents }: DocumentsTableProps) {
+export default function DocumentsTable({ documents, onDelete }: DocumentsTableProps) {
+  const colCount = onDelete ? 8 : 7;
   return (
     <div className="bg-onyx-card rounded-xl border border-onyx-border overflow-x-auto">
       <table className="w-full text-sm">
@@ -31,6 +33,7 @@ export default function DocumentsTable({ documents }: DocumentsTableProps) {
             <th className="px-4 py-3 text-right">VAT</th>
             <th className="px-4 py-3">Właściciel</th>
             <th className="px-4 py-3">Status</th>
+            {onDelete && <th className="px-4 py-3 text-right"></th>}
           </tr>
         </thead>
         <tbody>
@@ -60,11 +63,22 @@ export default function DocumentsTable({ documents }: DocumentsTableProps) {
                  doc.status === "rejected" ? <span className="text-red-400">&#10005;</span> :
                  <span className="text-onyx-muted">&#8943;</span>}
               </td>
+              {onDelete && (
+                <td className="px-4 py-3 text-right">
+                  <button
+                    onClick={() => { if (confirm("Usunąć ten dokument? Tej operacji nie można cofnąć.")) onDelete(doc.id); }}
+                    className="text-red-400 hover:text-red-300 text-sm"
+                    title="Usuń dokument"
+                  >
+                    &#128465;
+                  </button>
+                </td>
+              )}
             </tr>
           ))}
           {documents.length === 0 && (
             <tr>
-              <td colSpan={7} className="px-4 py-8 text-center text-onyx-muted">
+              <td colSpan={colCount} className="px-4 py-8 text-center text-onyx-muted">
                 Brak dokumentów
               </td>
             </tr>

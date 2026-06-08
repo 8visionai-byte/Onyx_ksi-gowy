@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { CostOwner } from "@prisma/client";
 import OwnerFilter from "@/components/OwnerFilter";
-import MonthSelector from "@/components/MonthSelector";
+import DateRangeSelector, { currentMonthRange } from "@/components/DateRangeSelector";
 
 interface ProductRow {
   nazwa: string;
@@ -24,17 +24,14 @@ function formatPLN(value: number | null): string {
 const ALL_OWNERS: CostOwner[] = ["onyx", "ogonowscy", "pieloch", "welman"];
 
 export default function ProduktyPage() {
-  const now = new Date();
-  const [month, setMonth] = useState(
-    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
-  );
+  const [range, setRange] = useState(() => currentMonthRange());
   const [owners, setOwners] = useState<CostOwner[]>([...ALL_OWNERS]);
   const [data, setData] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    const params = new URLSearchParams({ month });
+    const params = new URLSearchParams({ from: range.from, to: range.to });
     if (owners.length > 0 && owners.length < ALL_OWNERS.length) {
       params.set("owners", owners.join(","));
     }
@@ -43,7 +40,7 @@ export default function ProduktyPage() {
       .then((d) => setData(d))
       .catch(() => setData([]))
       .finally(() => setLoading(false));
-  }, [month, owners]);
+  }, [range, owners]);
 
   const totals = data.reduce(
     (acc, row) => ({
@@ -59,7 +56,7 @@ export default function ProduktyPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-onyx-text">Produkty</h1>
-        <MonthSelector value={month} onChange={setMonth} />
+        <DateRangeSelector from={range.from} to={range.to} onChange={(from, to) => setRange({ from, to })} />
       </div>
 
       <OwnerFilter selected={owners} onChange={setOwners} />

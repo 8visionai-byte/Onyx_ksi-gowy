@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { decimalsToNumbers } from "@/lib/serialize";
+import { documentDateCondition } from "@/lib/dateFilter";
 import { CostOwner, DocumentType, DocumentStatus } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
@@ -15,50 +16,49 @@ export async function GET(request: NextRequest) {
   const ownersParam = searchParams.get("owners");
   const typeParam = searchParams.get("type");
   const statusParam = searchParams.get("status");
-  const monthParam = searchParams.get("month");
   const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
   const limit = Math.min(
     100,
     Math.max(1, parseInt(searchParams.get("limit") || "20", 10))
   );
 
-  const where: Record<string, unknown> = { deletedAt: null };
+  const and: Record<string, unknown>[] = [{ deletedAt: null }];
 
   if (ownersParam) {
     const owners = ownersParam.split(",").filter((o) =>
       Object.values(CostOwner).includes(o as CostOwner)
     ) as CostOwner[];
     if (owners.length > 0) {
-      where.costOwner = { in: owners };
+      and.push({ costOwner: { in: owners } });
     }
   }
 
   if (typeParam && Object.values(DocumentType).includes(typeParam as DocumentType)) {
-    where.type = typeParam;
+    and.push({ type: typeParam });
   }
 
   if (statusParam && Object.values(DocumentStatus).includes(statusParam as DocumentStatus)) {
-    where.status = statusParam;
+    and.push({ status: statusParam });
   }
 
-  if (monthParam && /^\d{4}-\d{2}$/.test(monthParam)) {
-    const [year, month] = monthParam.split("-").map(Number);
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 1);
-    where.createdAt = {
-      gte: startDate,
-      lt: endDate,
-    };
-  }
+  const dateCond = documentDateCondition(
+    searchParams.get("from"),
+    searchParams.get("to")
+  );
+  if (dateCond) and.push(dateCond);
 
   const searchParam = searchParams.get("search");
   if (searchParam && searchParam.trim().length > 0) {
     const term = searchParam.trim();
-    where.OR = [
-      { vendorName: { contains: term, mode: "insensitive" } },
-      { documentNumber: { contains: term, mode: "insensitive" } },
-    ];
+    and.push({
+      OR: [
+        { vendorName: { contains: term, mode: "insensitive" } },
+        { documentNumber: { contains: term, mode: "insensitive" } },
+      ],
+    });
   }
+
+  const where = { AND: and };
 
   try {
     const [documents, total] = await Promise.all([

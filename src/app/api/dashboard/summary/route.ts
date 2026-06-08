@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { documentDateCondition } from "@/lib/dateFilter";
 import { CostOwner } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
@@ -18,28 +19,34 @@ export async function GET(req: NextRequest) {
       ) as CostOwner[])
     : (Object.values(CostOwner) as CostOwner[]);
 
-  const month =
-    searchParams.get("month") || new Date().toISOString().slice(0, 7);
+  const from = searchParams.get("from");
+  const to = searchParams.get("to");
+  const dateCond = documentDateCondition(from, to);
 
-  const [year, m] = month.split("-").map(Number);
-  const startDate = new Date(year, m - 1, 1);
-  const endDate = new Date(year, m, 1);
-
-  const where = {
+  const baseWhere: Record<string, unknown> = {
     costOwner: { in: owners },
-    status: "confirmed" as const,
+    status: "confirmed",
     deletedAt: null,
-    documentDate: { gte: startDate, lt: endDate },
+  };
+  const where = dateCond ? { AND: [baseWhere, dateCond] } : baseWhere;
+
+  const expensesWhere: Record<string, unknown> = {
+    ...baseWhere,
+    type: { in: ["faktura_zakup", "paragon"] },
+  };
+  const revenueWhere: Record<string, unknown> = {
+    ...baseWhere,
+    type: "faktura_sprzedaz",
   };
 
   const expenses = await prisma.document.aggregate({
-    where: { ...where, type: { in: ["faktura_zakup", "paragon"] as const } },
+    where: dateCond ? { AND: [expensesWhere, dateCond] } : expensesWhere,
     _sum: { netAmount: true, vatAmount: true, grossAmount: true },
     _count: true,
   });
 
   const revenue = await prisma.document.aggregate({
-    where: { ...where, type: "faktura_sprzedaz" },
+    where: dateCond ? { AND: [revenueWhere, dateCond] } : revenueWhere,
     _sum: { netAmount: true, vatAmount: true, grossAmount: true },
     _count: true,
   });
@@ -68,6 +75,6 @@ export async function GET(req: NextRequest) {
     },
     totalDocs,
     pendingDocs,
-    month,
+    range: { from, to },
   });
 }

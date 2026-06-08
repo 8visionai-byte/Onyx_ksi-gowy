@@ -141,6 +141,12 @@ export default function DokumentDetailPage() {
     }
   }
 
+  async function handleDelete() {
+    if (!confirm("Usunąć ten dokument? Tej operacji nie można cofnąć.")) return;
+    await fetch(`/api/documents/${id}`, { method: "DELETE" });
+    router.push("/dokumenty");
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64 text-onyx-muted">
@@ -175,12 +181,20 @@ export default function DokumentDetailPage() {
           &larr; Powrot do listy
         </Link>
         {!editing ? (
-          <button
-            onClick={() => setEditing(true)}
-            className="px-4 py-1.5 text-sm rounded-lg bg-onyx-accent text-white hover:bg-onyx-accent/80"
-          >
-            Edytuj
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setEditing(true)}
+              className="px-4 py-1.5 text-sm rounded-lg bg-onyx-accent text-white hover:bg-onyx-accent/80"
+            >
+              Edytuj
+            </button>
+            <button
+              onClick={handleDelete}
+              className="px-4 py-1.5 text-sm rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10"
+            >
+              &#128465; Usuń dokument
+            </button>
+          </div>
         ) : (
           <div className="flex gap-2">
             <button

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { CostOwner } from "@prisma/client";
 import OwnerFilter from "@/components/OwnerFilter";
-import MonthSelector from "@/components/MonthSelector";
+import DateRangeSelector, { currentMonthRange } from "@/components/DateRangeSelector";
 
 interface VatRow {
   vatRate: number | null;
@@ -31,17 +31,14 @@ const ALL_OWNERS: CostOwner[] = ["onyx", "ogonowscy", "pieloch", "welman"];
 const VAT_RATES_ORDER = [23, 8, 5, 0];
 
 export default function VatPage() {
-  const now = new Date();
-  const [month, setMonth] = useState(
-    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
-  );
+  const [range, setRange] = useState(() => currentMonthRange());
   const [owners, setOwners] = useState<CostOwner[]>([...ALL_OWNERS]);
   const [data, setData] = useState<VatRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    const params = new URLSearchParams({ month });
+    const params = new URLSearchParams({ from: range.from, to: range.to });
     if (owners.length > 0 && owners.length < ALL_OWNERS.length) {
       params.set("owners", owners.join(","));
     }
@@ -50,7 +47,7 @@ export default function VatPage() {
       .then((d) => setData(d))
       .catch(() => setData([]))
       .finally(() => setLoading(false));
-  }, [month, owners]);
+  }, [range, owners]);
 
   // Sort by predefined rate order, unknowns at end
   const sorted = [...data].sort((a, b) => {
@@ -72,10 +69,26 @@ export default function VatPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-onyx-text">Rejestr VAT</h1>
-        <MonthSelector value={month} onChange={setMonth} />
+        <DateRangeSelector from={range.from} to={range.to} onChange={(from, to) => setRange({ from, to })} />
       </div>
 
       <OwnerFilter selected={owners} onChange={setOwners} />
+
+      {/* Podsumowanie: ile łącznie VAT-u */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-onyx-card rounded-xl border border-onyx-border p-4">
+          <p className="text-xs text-onyx-muted">Razem netto</p>
+          <p className="text-2xl font-bold text-onyx-text mt-1">
+            {loading ? "—" : `${formatPLN(totals.netto)} zł`}
+          </p>
+        </div>
+        <div className="bg-onyx-card rounded-xl border border-onyx-accent/50 p-4">
+          <p className="text-xs text-onyx-muted">Razem VAT</p>
+          <p className="text-2xl font-bold text-amber-400 mt-1">
+            {loading ? "—" : `${formatPLN(totals.vat)} zł`}
+          </p>
+        </div>
+      </div>
 
       <div className="bg-onyx-card rounded-xl border border-onyx-border overflow-x-auto">
         <table className="w-full text-sm">

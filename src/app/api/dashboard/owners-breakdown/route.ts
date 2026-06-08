@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { decimalsToNumbers } from "@/lib/serialize";
+import { documentDateCondition } from "@/lib/dateFilter";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -11,21 +12,20 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const month =
-    searchParams.get("month") || new Date().toISOString().slice(0, 7);
+  const dateCond = documentDateCondition(
+    searchParams.get("from"),
+    searchParams.get("to")
+  );
 
-  const [year, m] = month.split("-").map(Number);
-  const startDate = new Date(year, m - 1, 1);
-  const endDate = new Date(year, m, 1);
+  const baseWhere: Record<string, unknown> = {
+    status: "confirmed",
+    deletedAt: null,
+    type: { in: ["faktura_zakup", "paragon"] },
+  };
 
   const breakdown = await prisma.document.groupBy({
     by: ["costOwner"],
-    where: {
-      status: "confirmed",
-      deletedAt: null,
-      documentDate: { gte: startDate, lt: endDate },
-      type: { in: ["faktura_zakup", "paragon"] },
-    },
+    where: dateCond ? { AND: [baseWhere, dateCond] } : baseWhere,
     _sum: { netAmount: true, vatAmount: true, grossAmount: true },
     _count: true,
   });
