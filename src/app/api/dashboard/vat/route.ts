@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { decimalsToNumbers } from "@/lib/serialize";
 import { CostOwner } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
@@ -49,7 +50,7 @@ export async function GET(req: NextRequest) {
       _count: true,
     });
 
-    return NextResponse.json(breakdown);
+    return NextResponse.json(decimalsToNumbers(breakdown));
   } catch (error) {
     console.error("VAT breakdown error:", error);
     return NextResponse.json(

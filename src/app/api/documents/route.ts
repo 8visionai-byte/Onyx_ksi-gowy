@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { decimalsToNumbers } from "@/lib/serialize";
 import { CostOwner, DocumentType, DocumentStatus } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
@@ -71,7 +72,9 @@ export async function GET(request: NextRequest) {
       prisma.document.count({ where }),
     ]);
 
-    return NextResponse.json({ documents, total, page, limit });
+    return NextResponse.json(
+      decimalsToNumbers({ documents, total, page, limit })
+    );
   } catch (error) {
     console.error("List documents error:", error);
     return NextResponse.json(

@@ -47,8 +47,8 @@ export default function DocumentsTable({ documents }: DocumentsTableProps) {
                 </span>
               </td>
               <td className="px-4 py-3">{doc.vendorName || "—"}</td>
-              <td className="px-4 py-3 text-right">{doc.netAmount?.toFixed(2) || "—"} zł</td>
-              <td className="px-4 py-3 text-right">{doc.vatAmount?.toFixed(2) || "—"} zł</td>
+              <td className="px-4 py-3 text-right">{doc.netAmount != null ? `${Number(doc.netAmount).toFixed(2)} zł` : "—"}</td>
+              <td className="px-4 py-3 text-right">{doc.vatAmount != null ? `${Number(doc.vatAmount).toFixed(2)} zł` : "—"}</td>
               <td className="px-4 py-3">
                 <span className={`text-xs px-2 py-0.5 rounded text-white ${OWNER_COLORS[doc.costOwner as keyof typeof OWNER_COLORS] || "bg-gray-500"}`}>
                   {OWNER_LABELS[doc.costOwner as keyof typeof OWNER_LABELS] || doc.costOwner}
