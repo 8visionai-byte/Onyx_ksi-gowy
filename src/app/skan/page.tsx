@@ -35,31 +35,16 @@ export default function SkanPage() {
       setDocumentId(id);
       setImagePath(path);
 
-      // 2. OCR
-      const ocrRes = await fetch("/api/ocr", {
+      // 2. Analiza AI (Gemini: zdjęcie → dane strukturalne)
+      const classifyRes = await fetch("/api/classify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ documentId: id }),
       });
 
-      if (!ocrRes.ok) {
-        setStep("error");
-        setErrorMsg("OCR nie rozpoznał tekstu. Spróbuj ponownie lub wprowadź dane ręcznie.");
-        return;
-      }
-
-      const { text } = await ocrRes.json();
-
-      // 3. AI Classification
-      const classifyRes = await fetch("/api/classify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentId: id, ocrText: text }),
-      });
-
       if (!classifyRes.ok) {
         setStep("error");
-        setErrorMsg("AI nie mógł sklasyfikować dokumentu.");
+        setErrorMsg("AI nie rozpoznało dokumentu. Spróbuj ponownie lub wprowadź dane ręcznie.");
         return;
       }
 
@@ -135,7 +120,7 @@ export default function SkanPage() {
         <div className="text-center py-20">
           <div className="animate-spin text-4xl mb-4">⏳</div>
           <p className="text-onyx-muted">Przetwarzanie dokumentu...</p>
-          <p className="text-xs text-onyx-muted mt-2">OCR → AI klasyfikacja → ekstrakcja danych</p>
+          <p className="text-xs text-onyx-muted mt-2">Gemini analizuje zdjęcie → rozpoznanie i ekstrakcja danych</p>
         </div>
       )}
 

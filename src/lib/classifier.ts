@@ -1,8 +1,9 @@
-import OpenAI from "openai";
 import { prisma } from "@/lib/prisma";
 import type { ClassificationResult } from "@/lib/types";
+import fs from "fs/promises";
+import path from "path";
 
-const DEFAULT_PROMPT = `Jesteś asystentem do klasyfikacji dokumentów księgowych. Otrzymasz tekst OCR z faktury lub paragonu.
+const DEFAULT_PROMPT = `Jesteś asystentem do klasyfikacji dokumentów księgowych dla firmy hotelowo-gastronomicznej Onyx. Otrzymasz ZDJĘCIE faktury lub paragonu.
 
 Odpowiedz w formacie JSON z następującymi polami:
 - type: "faktura_zakup" | "faktura_sprzedaz" | "paragon" | "inny"
@@ -23,21 +24,25 @@ Odpowiedz w formacie JSON z następującymi polami:
 - totals: { netto, vat, brutto } (number lub null)
 - vat_breakdown: obiekt ze stawkami VAT jako kluczami, np. { "23": { netto: 100, vat: 23 } }
 
+Kontekst branżowy — hotel + restauracja. Typowe VAT: żywność 5%/8%, usługi gastronomiczne i hotelowe 8%, wyposażenie/chemia/materiały 23%.
+
 Zwróć TYLKO poprawny JSON, bez markdown.`;
 
-let openaiClient: OpenAI | null = null;
-
-function getOpenAIClient(): OpenAI {
-  if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-  }
-  return openaiClient;
+function mimeFromPath(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === ".png") return "image/png";
+  if (ext === ".webp") return "image/webp";
+  if (ext === ".heic") return "image/heic";
+  if (ext === ".pdf") return "application/pdf";
+  return "image/jpeg";
 }
 
+/**
+ * Analizuje ZDJĘCIE dokumentu modelem Gemini (multimodal) i zwraca dane strukturalne.
+ * Zastępuje wcześniejszy tor Google Vision OCR + OpenAI.
+ */
 export async function classifyDocument(
-  ocrText: string
+  imageFilePath: string
 ): Promise<ClassificationResult> {
   let systemPrompt = DEFAULT_PROMPT;
 
@@ -49,26 +54,56 @@ export async function classifyDocument(
       systemPrompt = config.value;
     }
   } catch {
-    // Use default prompt if DB lookup fails
+    // Użyj domyślnego promptu, jeśli odczyt z bazy zawiedzie
   }
 
-  const client = getOpenAIClient();
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("Brak klucza GEMINI_API_KEY w konfiguracji");
+  }
 
-  const response = await client.chat.completions.create({
-    model: "gpt-4o",
-    temperature: 0.1,
-    response_format: { type: "json_object" },
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: ocrText },
-    ],
-  });
+  const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 
-  const content = response.choices[0]?.message?.content;
+  const fileBuffer = await fs.readFile(imageFilePath);
+  const base64 = fileBuffer.toString("base64");
+  const mimeType = mimeFromPath(imageFilePath);
+
+  const instruction =
+    systemPrompt +
+    "\n\nPrzeanalizuj załączony obraz dokumentu i wyodrębnij dane. Zwróć TYLKO poprawny JSON według powyższego schematu, bez markdown.";
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              { text: instruction },
+              { inline_data: { mime_type: mimeType, data: base64 } },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.1,
+          responseMimeType: "application/json",
+        },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Gemini API błąd ${response.status}: ${errText}`);
+  }
+
+  const data = await response.json();
+  const content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!content) {
-    throw new Error("Brak odpowiedzi z modelu AI");
+    throw new Error("Brak odpowiedzi z modelu Gemini");
   }
 
-  const result = JSON.parse(content) as ClassificationResult;
-  return result;
+  return JSON.parse(content) as ClassificationResult;
 }

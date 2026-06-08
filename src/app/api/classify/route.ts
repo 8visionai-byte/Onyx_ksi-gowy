@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { classifyDocument } from "@/lib/classifier";
 import { DocumentType } from "@prisma/client";
+import path from "path";
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -15,11 +16,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   try {
-    const { documentId, ocrText } = await request.json();
+    const { documentId } = await request.json();
 
-    if (!documentId || !ocrText) {
+    if (!documentId) {
       return NextResponse.json(
-        { error: "Brak documentId lub ocrText" },
+        { error: "Brak documentId" },
         { status: 400 }
       );
     }
@@ -35,7 +36,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await classifyDocument(ocrText);
+    const uploadDir = process.env.UPLOAD_DIR || "public/uploads";
+    const filename = path.basename(document.imagePath);
+    const fullPath = path.join(uploadDir, filename);
+
+    let result;
+    try {
+      result = await classifyDocument(fullPath);
+    } catch (aiError) {
+      console.error("Gemini analiza nieudana:", aiError);
+      return NextResponse.json(
+        { error: "AI nie rozpoznało dokumentu. Proszę wprowadzić dane ręcznie." },
+        { status: 422 }
+      );
+    }
 
     const updateData: Record<string, unknown> = {
       aiRawResponse: result as unknown as Record<string, unknown>,
