@@ -70,7 +70,9 @@ export async function classifyDocument(
 
   const instruction =
     systemPrompt +
-    "\n\nPrzeanalizuj załączony obraz dokumentu i wyodrębnij dane. Zwróć TYLKO poprawny JSON według powyższego schematu, bez markdown.";
+    "\n\nPrzeanalizuj załączony obraz dokumentu i wyodrębnij dane." +
+    "\n\nKONTROLA SPÓJNOŚCI (wykonaj przed odpowiedzią): dla każdej pozycji VAT = netto × stawka oraz brutto = netto + VAT; suma pozycji musi równać się sumom całkowitym; w rozbiciu VAT dla każdej stawki VAT = netto × stawka. Jeśli odczyt cyfry jest niepewny lub liczby się nie zgadzają, podaj wartość SPÓJNĄ arytmetycznie (przelicz VAT z netto i stawki). Wszystkie kwoty zaokrąglij do 2 miejsc po przecinku." +
+    "\n\nZwróć TYLKO poprawny JSON według powyższego schematu, bez markdown.";
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const requestBody = JSON.stringify({

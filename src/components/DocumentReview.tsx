@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ClassificationResult, DOCTYPE_LABELS } from "@/lib/types";
+import { validateClassification } from "@/lib/validate";
 import { DocumentType } from "@prisma/client";
 
 interface DocumentReviewProps {
@@ -18,6 +19,14 @@ export default function DocumentReview({
   onReject,
 }: DocumentReviewProps) {
   const [edited, setEdited] = useState(data);
+
+  const validation = useMemo(() => validateClassification(edited), [edited]);
+  const issueFields = useMemo(
+    () => new Set(validation.issues.map((i) => i.field)),
+    [validation]
+  );
+  const border = (field: string) =>
+    issueFields.has(field) ? "border-red-500" : "border-onyx-border";
 
   function updateField(field: string, value: any) {
     setEdited((prev) => ({ ...prev, [field]: value }));
@@ -119,7 +128,7 @@ export default function DocumentReview({
               step="0.01"
               value={edited.totals?.netto ?? ""}
               onChange={(e) => updateTotal("netto", e.target.value)}
-              className="w-full px-3 py-2 bg-onyx-bg border border-onyx-border rounded-lg text-onyx-text"
+              className={`w-full px-3 py-2 bg-onyx-bg border ${border("totals.netto")} rounded-lg text-onyx-text`}
             />
           </div>
           <div>
@@ -129,7 +138,7 @@ export default function DocumentReview({
               step="0.01"
               value={edited.totals?.vat ?? ""}
               onChange={(e) => updateTotal("vat", e.target.value)}
-              className="w-full px-3 py-2 bg-onyx-bg border border-onyx-border rounded-lg text-onyx-text"
+              className={`w-full px-3 py-2 bg-onyx-bg border ${border("totals.vat")} rounded-lg text-onyx-text`}
             />
           </div>
           <div>
@@ -139,7 +148,7 @@ export default function DocumentReview({
               step="0.01"
               value={edited.totals?.brutto ?? ""}
               onChange={(e) => updateTotal("brutto", e.target.value)}
-              className="w-full px-3 py-2 bg-onyx-bg border border-onyx-border rounded-lg text-onyx-text"
+              className={`w-full px-3 py-2 bg-onyx-bg border ${border("totals.brutto")} rounded-lg text-onyx-text`}
             />
           </div>
         </div>
@@ -174,6 +183,30 @@ export default function DocumentReview({
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* Walidacja arytmetyczna */}
+        {validation.issues.length > 0 ? (
+          <div className="rounded-lg border border-red-500/50 bg-red-500/10 p-3 space-y-2">
+            <p className="text-sm font-semibold text-red-400">
+              ⚠️ Wykryto rozbieżności w liczbach:
+            </p>
+            <ul className="text-xs text-red-300 list-disc list-inside space-y-0.5">
+              {validation.issues.map((iss, k) => (
+                <li key={k}>{iss.message}</li>
+              ))}
+            </ul>
+            <button
+              onClick={() => setEdited(validation.fixed)}
+              className="mt-1 px-3 py-1.5 bg-amber-500 text-black rounded-lg text-xs font-semibold hover:bg-amber-400 transition-colors"
+            >
+              Popraw automatycznie (przelicz VAT = netto × stawka)
+            </button>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-green-500/40 bg-green-500/10 p-2">
+            <p className="text-xs text-green-400">✓ Liczby zgadzają się arytmetycznie</p>
           </div>
         )}
 
