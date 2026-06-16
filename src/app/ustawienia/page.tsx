@@ -35,6 +35,11 @@ export default function UstawieniaPage() {
   const [promptSaving, setPromptSaving] = useState(false);
   const [promptMsg, setPromptMsg] = useState("");
 
+  // --- Model AI ---
+  const [model, setModel] = useState("gemini-2.5-flash");
+  const [modelSaving, setModelSaving] = useState(false);
+  const [modelMsg, setModelMsg] = useState("");
+
   // --- Users ---
   const [users, setUsers] = useState<UserRow[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
@@ -52,8 +57,12 @@ export default function UstawieniaPage() {
     fetch("/api/config")
       .then((r) => r.json())
       .then((configs: AiConfig[]) => {
-        const p = configs.find((c) => c.key === "classification_prompt");
+        const p = configs.find(
+          (c) => c.key === "document_classification_prompt"
+        );
         setPrompt(p?.value || DEFAULT_PROMPT);
+        const m = configs.find((c) => c.key === "gemini_model");
+        if (m?.value) setModel(m.value);
       })
       .catch(() => setPrompt(DEFAULT_PROMPT))
       .finally(() => setPromptLoading(false));
@@ -89,7 +98,7 @@ export default function UstawieniaPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          key: "classification_prompt",
+          key: "document_classification_prompt",
           value: prompt,
         }),
       });
@@ -104,6 +113,24 @@ export default function UstawieniaPage() {
 
   function restoreDefault() {
     setPrompt(DEFAULT_PROMPT);
+  }
+
+  async function saveModel() {
+    setModelSaving(true);
+    setModelMsg("");
+    try {
+      const res = await fetch("/api/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "gemini_model", value: model }),
+      });
+      if (!res.ok) throw new Error("Blad zapisu");
+      setModelMsg("Zapisano");
+    } catch {
+      setModelMsg("Blad zapisu");
+    } finally {
+      setModelSaving(false);
+    }
   }
 
   async function createUser() {
@@ -191,6 +218,40 @@ export default function UstawieniaPage() {
           </>
         )}
       </section>
+
+      {/* Model AI */}
+      {isAdmin && (
+        <section className="bg-onyx-card rounded-xl border border-onyx-border p-5 space-y-4">
+          <h2 className="text-lg font-semibold text-onyx-text">
+            Model AI (rozpoznawanie dokumentów)
+          </h2>
+          <p className="text-xs text-onyx-muted">
+            Model Gemini używany do odczytu faktur. &bdquo;pro&rdquo; jest
+            dokładniejszy (mniej błędów cyfr), &bdquo;flash&rdquo; szybszy i tańszy.
+            Zmiana działa od razu, bez restartu.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              className="bg-onyx-bg border border-onyx-border rounded-lg px-3 py-2 text-sm text-onyx-text"
+            >
+              <option value="gemini-2.5-pro">gemini-2.5-pro — najdokładniejszy</option>
+              <option value="gemini-2.5-flash">gemini-2.5-flash — zbalansowany</option>
+              <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite — najtańszy</option>
+              <option value="gemini-2.0-flash">gemini-2.0-flash — starszy</option>
+            </select>
+            <button
+              onClick={saveModel}
+              disabled={modelSaving}
+              className="px-4 py-1.5 text-sm rounded-lg bg-onyx-accent text-white hover:bg-onyx-accent/80 disabled:opacity-50"
+            >
+              {modelSaving ? "Zapisywanie..." : "Zapisz model"}
+            </button>
+            {modelMsg && <span className="text-sm text-green-400">{modelMsg}</span>}
+          </div>
+        </section>
+      )}
 
       {/* Users */}
       {isAdmin && (

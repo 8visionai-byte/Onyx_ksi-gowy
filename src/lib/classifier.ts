@@ -62,7 +62,16 @@ export async function classifyDocument(
     throw new Error("Brak klucza GEMINI_API_KEY w konfiguracji");
   }
 
-  const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+  // Model: z bazy (Ustawienia → Model AI), potem zmienna środowiskowa, potem domyślny
+  let model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  try {
+    const modelConfig = await prisma.aiConfig.findUnique({
+      where: { key: "gemini_model" },
+    });
+    if (modelConfig?.value) model = modelConfig.value.trim();
+  } catch {
+    // użyj modelu ze zmiennej środowiskowej / domyślnego
+  }
 
   const fileBuffer = await fs.readFile(imageFilePath);
   const base64 = fileBuffer.toString("base64");
