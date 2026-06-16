@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { OWNER_LABELS, OWNER_COLORS, DOCTYPE_LABELS } from "@/lib/types";
+import ImagePreview from "@/components/ImagePreview";
 
 interface DocumentRow {
   id: string;
@@ -12,6 +13,7 @@ interface DocumentRow {
   vatAmount: number | null;
   costOwner: string;
   status: string;
+  imagePath: string | null;
 }
 
 interface DocumentsTableProps {
@@ -20,12 +22,13 @@ interface DocumentsTableProps {
 }
 
 export default function DocumentsTable({ documents, onDelete }: DocumentsTableProps) {
-  const colCount = onDelete ? 8 : 7;
+  const colCount = onDelete ? 9 : 8;
   return (
     <div className="bg-onyx-card rounded-xl border border-onyx-border overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="text-onyx-muted border-b border-onyx-border text-left">
+            <th className="px-4 py-3">Zdjęcie</th>
             <th className="px-4 py-3">Data</th>
             <th className="px-4 py-3">Typ</th>
             <th className="px-4 py-3">Kontrahent</th>
@@ -39,6 +42,9 @@ export default function DocumentsTable({ documents, onDelete }: DocumentsTablePr
         <tbody>
           {documents.map((doc) => (
             <tr key={doc.id} className="border-b border-onyx-border/50 hover:bg-onyx-bg/50">
+              <td className="px-4 py-3">
+                <ImagePreview src={doc.imagePath} />
+              </td>
               <td className="px-4 py-3">
                 <Link href={`/dokumenty/${doc.id}`} className="hover:text-onyx-accent">
                   {doc.documentDate ? new Date(doc.documentDate).toLocaleDateString("pl") : "—"}

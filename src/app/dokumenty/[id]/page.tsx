@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import ImagePreview from "@/components/ImagePreview";
 import { OWNER_LABELS, OWNER_COLORS, DOCTYPE_LABELS } from "@/lib/types";
 import { CostOwner, DocumentType, DocumentStatus } from "@prisma/client";
 
@@ -223,13 +224,15 @@ export default function DokumentDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Image preview */}
         <div className="bg-onyx-card rounded-xl border border-onyx-border p-4">
-          <h2 className="text-sm text-onyx-muted mb-3">Podglad dokumentu</h2>
+          <h2 className="text-sm text-onyx-muted mb-3">
+            Podglad dokumentu{" "}
+            <span className="text-xs text-onyx-muted/70">(kliknij, aby powiększyć)</span>
+          </h2>
           <div className="bg-onyx-bg rounded-lg overflow-hidden flex items-center justify-center min-h-[300px]">
             {doc.imagePath ? (
-              <img
+              <ImagePreview
                 src={doc.imagePath}
-                alt="Dokument"
-                className="max-w-full max-h-[500px] object-contain"
+                thumbClassName="max-w-full max-h-[500px] object-contain cursor-zoom-in"
               />
             ) : (
               <span className="text-onyx-muted text-sm">Brak obrazu</span>

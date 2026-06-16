@@ -17,6 +17,7 @@ interface DocumentRow {
   vatAmount: number | null;
   costOwner: string;
   status: string;
+  imagePath: string | null;
 }
 
 const ALL_OWNERS: CostOwner[] = ["onyx", "ogonowscy", "pieloch", "welman"];
