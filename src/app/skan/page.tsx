@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import CameraCapture from "@/components/CameraCapture";
 import ClassificationWizard from "@/components/ClassificationWizard";
 import DocumentReview from "@/components/DocumentReview";
@@ -19,6 +20,8 @@ export default function SkanPage() {
   const [isPrivate, setIsPrivate] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const router = useRouter();
+  const { data: session } = useSession();
+  const onlyOnyx = (session?.user as { scope?: string })?.scope === "onyx";
 
   async function handleCapture(file: File) {
     setStep("processing");
@@ -50,7 +53,14 @@ export default function SkanPage() {
 
       const result: ClassificationResult = await classifyRes.json();
       setClassificationData(result);
-      setStep("classify");
+      if (onlyOnyx) {
+        // Pracownik Onyx: koszt zawsze firmowy, pomijamy wybór właściciela
+        setOwner("onyx");
+        setIsPrivate(false);
+        setStep("review");
+      } else {
+        setStep("classify");
+      }
     } catch (err: any) {
       setStep("error");
       setErrorMsg(err.message || "Wystąpił błąd");

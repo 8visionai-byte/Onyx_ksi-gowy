@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { decimalsToNumbers } from "@/lib/serialize";
-import { isOnyxOnly } from "@/lib/scope";
+import { isOnyxOnly, canWriteDocuments } from "@/lib/scope";
 import { DocumentType, CostOwner, DocumentStatus } from "@prisma/client";
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -63,9 +63,10 @@ export async function PUT(
   if (!session?.user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as { role?: string }).role;
-  if (role !== "admin")
+  if (!canWriteDocuments(session))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const onyxOnly = isOnyxOnly(session);
 
   try {
     const existing = await prisma.document.findFirst({
@@ -73,6 +74,14 @@ export async function PUT(
     });
 
     if (!existing) {
+      return NextResponse.json(
+        { error: "Dokument nie został znaleziony" },
+        { status: 404 }
+      );
+    }
+
+    // Pracownik Onyx może edytować tylko dokumenty Onyx (nie prywatne, nie cudzych właścicieli)
+    if (onyxOnly && (existing.costOwner !== "onyx" || existing.isPrivate)) {
       return NextResponse.json(
         { error: "Dokument nie został znaleziony" },
         { status: 404 }
@@ -116,6 +125,12 @@ export async function PUT(
     if (vatAmount !== undefined) updateData.vatAmount = vatAmount;
     if (grossAmount !== undefined) updateData.grossAmount = grossAmount;
     if (notes !== undefined) updateData.notes = notes;
+
+    if (onyxOnly) {
+      // Wymuszenie: pracownik Onyx nie może przypisać kosztu do rodziny/prywatnego
+      updateData.costOwner = "onyx";
+      updateData.isPrivate = false;
+    }
 
     const document = await prisma.$transaction(async (tx) => {
       if (items !== undefined && Array.isArray(items)) {

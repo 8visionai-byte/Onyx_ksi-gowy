@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { classifyDocument } from "@/lib/classifier";
+import { canWriteDocuments } from "@/lib/scope";
 import { DocumentType } from "@prisma/client";
 import path from "path";
 
@@ -11,8 +12,7 @@ export async function POST(request: NextRequest) {
   if (!session?.user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as { role?: string }).role;
-  if (role !== "admin")
+  if (!canWriteDocuments(session))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   try {
