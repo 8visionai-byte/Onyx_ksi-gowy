@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import { CostOwner, DocumentType, DocumentStatus } from "@prisma/client";
 import OwnerFilter from "@/components/OwnerFilter";
 import DateRangeSelector, { currentMonthRange } from "@/components/DateRangeSelector";
@@ -27,6 +28,8 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function DokumentyPage() {
+  const { data: session } = useSession();
+  const onlyOnyx = (session?.user as { scope?: string })?.scope === "onyx";
   const [range, setRange] = useState(() => currentMonthRange());
   const [owners, setOwners] = useState<CostOwner[]>([...ALL_OWNERS]);
   const [typeFilter, setTypeFilter] = useState("");
@@ -97,7 +100,7 @@ export default function DokumentyPage() {
       </div>
 
       <div className="flex flex-col gap-4">
-        <OwnerFilter selected={owners} onChange={setOwners} />
+        {!onlyOnyx && <OwnerFilter selected={owners} onChange={setOwners} />}
 
         <div className="flex flex-wrap gap-3 items-center">
           {/* Search */}

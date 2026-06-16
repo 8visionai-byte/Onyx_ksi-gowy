@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { decimalsToNumbers } from "@/lib/serialize";
+import { isOnyxOnly } from "@/lib/scope";
 import { DocumentType, CostOwner, DocumentStatus } from "@prisma/client";
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -24,6 +25,18 @@ export async function GET(
     });
 
     if (!document) {
+      return NextResponse.json(
+        { error: "Dokument nie został znaleziony" },
+        { status: 404 }
+      );
+    }
+
+    // Wymuszenie scope: konto Onyx nie może odczytać dokumentów prywatnych
+    // ani innych właścicieli. Zwracamy 404, by nie ujawniać istnienia.
+    if (
+      isOnyxOnly(session) &&
+      (document.costOwner !== "onyx" || document.isPrivate === true)
+    ) {
       return NextResponse.json(
         { error: "Dokument nie został znaleziony" },
         { status: 404 }

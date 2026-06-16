@@ -4,12 +4,15 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { decimalsToNumbers } from "@/lib/serialize";
 import { documentDateCondition } from "@/lib/dateFilter";
+import { isOnyxOnly } from "@/lib/scope";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const onyxOnly = isOnyxOnly(session);
 
   const { searchParams } = new URL(req.url);
   const dateCond = documentDateCondition(
@@ -21,6 +24,7 @@ export async function GET(req: NextRequest) {
     status: "confirmed",
     deletedAt: null,
     type: { in: ["faktura_zakup", "paragon"] },
+    ...(onyxOnly ? { costOwner: "onyx", isPrivate: false } : {}),
   };
 
   const breakdown = await prisma.document.groupBy({

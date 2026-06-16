@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { CostOwner } from "@prisma/client";
 import OwnerFilter from "@/components/OwnerFilter";
 import DateRangeSelector, { currentMonthRange } from "@/components/DateRangeSelector";
@@ -24,6 +25,8 @@ function formatPLN(value: number | null): string {
 const ALL_OWNERS: CostOwner[] = ["onyx", "ogonowscy", "pieloch", "welman"];
 
 export default function ProduktyPage() {
+  const { data: session } = useSession();
+  const onlyOnyx = (session?.user as { scope?: string })?.scope === "onyx";
   const [range, setRange] = useState(() => currentMonthRange());
   const [owners, setOwners] = useState<CostOwner[]>([...ALL_OWNERS]);
   const [data, setData] = useState<ProductRow[]>([]);
@@ -59,7 +62,7 @@ export default function ProduktyPage() {
         <DateRangeSelector from={range.from} to={range.to} onChange={(from, to) => setRange({ from, to })} />
       </div>
 
-      <OwnerFilter selected={owners} onChange={setOwners} />
+      {!onlyOnyx && <OwnerFilter selected={owners} onChange={setOwners} />}
 
       <div className="bg-onyx-card rounded-xl border border-onyx-border overflow-x-auto">
         <table className="w-full text-sm">

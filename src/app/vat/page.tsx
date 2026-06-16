@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { CostOwner } from "@prisma/client";
 import OwnerFilter from "@/components/OwnerFilter";
 import DateRangeSelector, { currentMonthRange } from "@/components/DateRangeSelector";
@@ -31,6 +32,8 @@ const ALL_OWNERS: CostOwner[] = ["onyx", "ogonowscy", "pieloch", "welman"];
 const VAT_RATES_ORDER = [23, 8, 5, 0];
 
 export default function VatPage() {
+  const { data: session } = useSession();
+  const onlyOnyx = (session?.user as { scope?: string })?.scope === "onyx";
   const [range, setRange] = useState(() => currentMonthRange());
   const [owners, setOwners] = useState<CostOwner[]>([...ALL_OWNERS]);
   const [data, setData] = useState<VatRow[]>([]);
@@ -72,7 +75,7 @@ export default function VatPage() {
         <DateRangeSelector from={range.from} to={range.to} onChange={(from, to) => setRange({ from, to })} />
       </div>
 
-      <OwnerFilter selected={owners} onChange={setOwners} />
+      {!onlyOnyx && <OwnerFilter selected={owners} onChange={setOwners} />}
 
       {/* Podsumowanie: ile łącznie VAT-u */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

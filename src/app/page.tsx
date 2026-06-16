@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { CostOwner } from "@prisma/client";
 import OwnerFilter from "@/components/OwnerFilter";
 import StatCard from "@/components/StatCard";
@@ -8,6 +9,8 @@ import DateRangeSelector, { currentMonthRange } from "@/components/DateRangeSele
 import DocumentsTable from "@/components/DocumentsTable";
 
 export default function DashboardPage() {
+  const { data: session } = useSession();
+  const onlyOnyx = (session?.user as { scope?: string })?.scope === "onyx";
   const [owners, setOwners] = useState<CostOwner[]>([
     "onyx",
     "ogonowscy",
@@ -47,9 +50,11 @@ export default function DashboardPage() {
         <DateRangeSelector from={range.from} to={range.to} onChange={(from, to) => setRange({ from, to })} />
       </div>
 
-      <div className="mb-6">
-        <OwnerFilter selected={owners} onChange={setOwners} />
-      </div>
+      {!onlyOnyx && (
+        <div className="mb-6">
+          <OwnerFilter selected={owners} onChange={setOwners} />
+        </div>
+      )}
 
       {loading ? (
         <p className="text-onyx-muted">Ładowanie...</p>

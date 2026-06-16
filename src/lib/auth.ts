@@ -38,6 +38,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           role: user.role,
+          scope: user.scope,
         };
       },
     }),
@@ -51,6 +52,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.role = (user as unknown as { role: string }).role;
         token.id = user.id;
+        token.scope = (user as unknown as { scope?: string }).scope ?? "all";
       }
       return token;
     },
@@ -58,6 +60,8 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as { role?: string }).role = token.role as string;
         (session.user as { id?: string }).id = token.id as string;
+        (session.user as { scope?: string }).scope =
+          (token.scope as string) ?? "all";
       }
       return session;
     },

@@ -38,6 +38,7 @@ model User {
   passwordHash String    @map("password_hash")
   name         String
   role         UserRole  @default(viewer)
+  scope        String    @default("all")
   createdAt    DateTime  @default(now()) @map("created_at")
 
   documents    Document[]

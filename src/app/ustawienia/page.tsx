@@ -14,6 +14,7 @@ interface UserRow {
   email: string;
   name: string;
   role: string;
+  scope: string;
   createdAt: string;
 }
 
@@ -39,7 +40,7 @@ export default function UstawieniaPage() {
   const [usersLoading, setUsersLoading] = useState(true);
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [newRole, setNewRole] = useState("viewer");
+  const [newAccountType, setNewAccountType] = useState("viewer_all");
   const [createMsg, setCreateMsg] = useState("");
   const [creating, setCreating] = useState(false);
 
@@ -115,7 +116,8 @@ export default function UstawieniaPage() {
         body: JSON.stringify({
           email: newEmail,
           password: newPassword,
-          role: newRole,
+          role: newAccountType === "admin" ? "admin" : "viewer",
+          scope: newAccountType === "onyx" ? "onyx" : "all",
         }),
       });
       const data = await res.json();
@@ -123,7 +125,7 @@ export default function UstawieniaPage() {
       setUsers((prev) => [...prev, data]);
       setNewEmail("");
       setNewPassword("");
-      setNewRole("viewer");
+      setNewAccountType("viewer_all");
       setCreateMsg("Utworzono");
     } catch (e) {
       setCreateMsg(e instanceof Error ? e.message : "Blad");
@@ -204,7 +206,7 @@ export default function UstawieniaPage() {
                   <tr className="text-onyx-muted border-b border-onyx-border text-left">
                     <th className="px-3 py-2">Email</th>
                     <th className="px-3 py-2">Imie</th>
-                    <th className="px-3 py-2">Rola</th>
+                    <th className="px-3 py-2">Typ konta</th>
                     <th className="px-3 py-2">Utworzono</th>
                     <th className="px-3 py-2"></th>
                   </tr>
@@ -222,10 +224,16 @@ export default function UstawieniaPage() {
                           className={`text-xs px-2 py-0.5 rounded ${
                             u.role === "admin"
                               ? "bg-onyx-accent text-white"
+                              : u.scope === "onyx"
+                              ? "bg-amber-500/20 text-amber-300"
                               : "bg-onyx-bg text-onyx-muted"
                           }`}
                         >
-                          {u.role}
+                          {u.role === "admin"
+                            ? "Administrator"
+                            : u.scope === "onyx"
+                            ? "Pracownik Onyx"
+                            : "Podgląd"}
                         </span>
                       </td>
                       <td className="px-3 py-2 text-onyx-muted">
@@ -271,14 +279,15 @@ export default function UstawieniaPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-onyx-muted">Rola</label>
+                <label className="text-xs text-onyx-muted">Typ konta</label>
                 <select
-                  value={newRole}
-                  onChange={(e) => setNewRole(e.target.value)}
+                  value={newAccountType}
+                  onChange={(e) => setNewAccountType(e.target.value)}
                   className="block bg-onyx-bg border border-onyx-border rounded px-2 py-1 text-sm text-onyx-text mt-0.5"
                 >
-                  <option value="viewer">viewer</option>
-                  <option value="admin">admin</option>
+                  <option value="admin">Administrator (pełny dostęp)</option>
+                  <option value="viewer_all">Podgląd — wszystkie kategorie</option>
+                  <option value="onyx">Pracownik Onyx — tylko firmowe</option>
                 </select>
               </div>
               <button

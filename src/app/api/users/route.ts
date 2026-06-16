@@ -20,6 +20,7 @@ export async function GET() {
         email: true,
         name: true,
         role: true,
+        scope: true,
         createdAt: true,
       },
       orderBy: { createdAt: "asc" },
@@ -45,7 +46,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   try {
-    const { email, password, name, role: userRole } = await request.json();
+    const {
+      email,
+      password,
+      name,
+      role: userRole,
+      scope: userScope,
+    } = await request.json();
 
     if (!email || !password) {
       return NextResponse.json(
@@ -53,6 +60,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const scope = userScope === "onyx" ? "onyx" : "all";
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
@@ -70,12 +79,14 @@ export async function POST(request: NextRequest) {
         passwordHash,
         name: name || email.split("@")[0],
         role: userRole === "admin" ? "admin" : "viewer",
+        scope,
       },
       select: {
         id: true,
         email: true,
         name: true,
         role: true,
+        scope: true,
         createdAt: true,
       },
     });

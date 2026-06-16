@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { documentDateCondition } from "@/lib/dateFilter";
+import { isOnyxOnly } from "@/lib/scope";
 import { CostOwner } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
@@ -10,6 +11,8 @@ export async function GET(req: NextRequest) {
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const onyxOnly = isOnyxOnly(session);
 
   const { searchParams } = new URL(req.url);
   const ownersParam = searchParams.get("owners");
@@ -23,7 +26,11 @@ export async function GET(req: NextRequest) {
     deletedAt: null,
   };
 
-  if (ownersParam) {
+  if (onyxOnly) {
+    // Wymuszenie scope: tylko firmowe, ignoruj owners z URL.
+    baseDocWhere.costOwner = "onyx";
+    baseDocWhere.isPrivate = false;
+  } else if (ownersParam) {
     const owners = ownersParam
       .split(",")
       .filter((o) =>

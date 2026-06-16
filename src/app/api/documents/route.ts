@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { decimalsToNumbers } from "@/lib/serialize";
 import { documentDateCondition } from "@/lib/dateFilter";
+import { isOnyxOnly } from "@/lib/scope";
 import { CostOwner, DocumentType, DocumentStatus } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
@@ -22,9 +23,15 @@ export async function GET(request: NextRequest) {
     Math.max(1, parseInt(searchParams.get("limit") || "20", 10))
   );
 
+  const onyxOnly = isOnyxOnly(session);
+
   const and: Record<string, unknown>[] = [{ deletedAt: null }];
 
-  if (ownersParam) {
+  if (onyxOnly) {
+    // Wymuszenie po stronie serwera: tylko firmowe, ignoruj owners z URL.
+    and.push({ costOwner: "onyx" });
+    and.push({ isPrivate: false });
+  } else if (ownersParam) {
     const owners = ownersParam.split(",").filter((o) =>
       Object.values(CostOwner).includes(o as CostOwner)
     ) as CostOwner[];

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { documentDateCondition } from "@/lib/dateFilter";
+import { isOnyxOnly } from "@/lib/scope";
 import { CostOwner } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
@@ -11,9 +12,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const onyxOnly = isOnyxOnly(session);
+
   const { searchParams } = new URL(req.url);
   const ownersParam = searchParams.get("owners");
-  const owners = ownersParam
+  const owners = onyxOnly
+    ? (["onyx"] as CostOwner[])
+    : ownersParam
     ? (ownersParam.split(",").filter((o) =>
         Object.values(CostOwner).includes(o as CostOwner)
       ) as CostOwner[])
@@ -27,6 +32,7 @@ export async function GET(req: NextRequest) {
     costOwner: { in: owners },
     status: "confirmed",
     deletedAt: null,
+    ...(onyxOnly ? { isPrivate: false } : {}),
   };
   const where = dateCond ? { AND: [baseWhere, dateCond] } : baseWhere;
 
@@ -57,6 +63,7 @@ export async function GET(req: NextRequest) {
       costOwner: { in: owners },
       status: "review",
       deletedAt: null,
+      ...(onyxOnly ? { isPrivate: false } : {}),
     },
   });
 
