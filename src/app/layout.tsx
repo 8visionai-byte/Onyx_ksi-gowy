@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import SessionProvider from "@/components/SessionProvider";
 import Sidebar from "@/components/Sidebar";
+import ScanButton from "@/components/ScanButton";
 
 const inter = Inter({
   subsets: ["latin", "latin-ext"],
@@ -44,6 +45,7 @@ export default async function RootLayout({
               <main className="min-h-screen bg-[#0f172a] md:ml-[220px]">
                 <div className="p-6 pt-16 md:pt-6">{children}</div>
               </main>
+              <ScanButton />
             </>
           ) : (
             children
